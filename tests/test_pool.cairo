@@ -19,7 +19,8 @@ const SYMBOL = 456
 const DECIMALS = 18
 const INITIAL_SUPPLY_LOW = 1000
 const INITIAL_SUPPLY_HIGH = 0
-const AMOUNT = 10
+const SUPPLY_AMOUNT_LOW = 1
+const SUPPLY_AMOUNT_HIGH = 0
 
 @view
 func __setup__{syscall_ptr : felt*, range_check_ptr}():
@@ -43,46 +44,49 @@ func get_contract_addresses() -> (
     return (pool, token, a_token)
 end
 
-# @view
-# func test_init_reserve{syscall_ptr : felt*, range_check_ptr, pedersen_ptr : HashBuiltin*}():
-#     alloc_locals
-#     let (local pool, local token, local a_token) = get_contract_addresses()
+@view
+func test_init_reserve{syscall_ptr : felt*, range_check_ptr, pedersen_ptr : HashBuiltin*}():
+    alloc_locals
+    let (local pool, local token, local a_token) = get_contract_addresses()
 
-#     let (count_before) = IPool.get_reserves_count(pool)
-#     let (reserve_data_before) = IPool.get_reserve_data(pool, SYMBOL)
-#     assert reserve_data_before = DataTypes.ReserveData(0, 0, Uint256(0,0))
+    let (count_before) = IPool.get_reserves_count(pool)
+    let (reserve_data_before) = IPool.get_reserve_data(pool, SYMBOL)
+    assert reserve_data_before = DataTypes.ReserveData(0, 0, Uint256(0,0))
 
-#     IPool.init_reserve(pool, SYMBOL, a_token)
+    IPool.init_reserve(pool, SYMBOL, a_token)
 
-#     let (count_after) = IPool.get_reserves_count(pool)
-#     let (reserve_data_after) = IPool.get_reserve_data(pool, SYMBOL)
-#     assert count_after - count_before = 1
-#     assert reserve_data_after = DataTypes.ReserveData(count_after, a_token, Uint256(RAY,0))
+    let (count_after) = IPool.get_reserves_count(pool)
+    let (reserve_data_after) = IPool.get_reserve_data(pool, SYMBOL)
+    assert count_after - count_before = 1
+    assert reserve_data_after = DataTypes.ReserveData(count_after, a_token, Uint256(RAY,0))
 
-#     return ()
-# end
+    return ()
+end
 
 @view
 func test_supply{syscall_ptr : felt*, range_check_ptr, pedersen_ptr : HashBuiltin*}():
     alloc_locals
     let (local pool, local token, local a_token) = get_contract_addresses()
-    
-    %{ stop_mock = mock_call(ids.pool, "get_reserve_normalized_income", [ids.RAY, 0]) %}
+    IPool.init_reserve(pool, SYMBOL, a_token)
+
     let (contract_token_balance_before) = IERC20.balanceOf(token, pool)
     let (user_token_balance_before) = IERC20.balanceOf(token, PRANK_USER_1)
-    let (recipient_a_token_balance_before) = IAToken.balanceOf(a_token, PRANK_USER_1)
-    %{ stop_mock() %}
-    
-
-    %{ stop_prank_callable = start_prank(ids.PRANK_USER_1) %}
-    %{ stop_mock = mock_call(ids.a_token, "UNDERLYING_ASSET_ADDRESS", [ids.token]) %}
-    IPool.supply(pool, SYMBOL, Uint256(AMOUNT, 0), PRANK_USER_1)
-    %{ stop_prank_callable() %}
-    %{ stop_mock() %}
 
     %{ stop_mock = mock_call(ids.pool, "get_reserve_normalized_income", [ids.RAY, 0]) %}
+    let (recipient_a_token_balance_before) = IAToken.balanceOf(a_token, PRANK_USER_1)
+    %{ stop_mock() %}
+
+    %{ stop_prank_callable = start_prank(ids.PRANK_USER_1, target_contract_address=ids.token) %}
+    IERC20.approve(contract_address=token, spender=pool, amount=Uint256(INITIAL_SUPPLY_LOW, INITIAL_SUPPLY_HIGH))
+    %{ stop_prank_callable() %}
+
+    %{ stop_prank_callable = start_prank(ids.PRANK_USER_1, target_contract_address=ids.pool) %}
+    IPool.supply(pool, SYMBOL, Uint256(SUPPLY_AMOUNT_LOW, SUPPLY_AMOUNT_HIGH), PRANK_USER_1)
+    %{ stop_prank_callable() %}
+
     let (contract_token_balance_after) = IERC20.balanceOf(token, pool)
     let (user_token_balance_after) = IERC20.balanceOf(token, PRANK_USER_1)
+    %{ stop_mock = mock_call(ids.pool, "get_reserve_normalized_income", [ids.RAY, 0]) %}
     let (recipient_a_token_balance_after) = IAToken.balanceOf(a_token, PRANK_USER_1)
     %{ stop_mock() %}
 
@@ -90,9 +94,9 @@ func test_supply{syscall_ptr : felt*, range_check_ptr, pedersen_ptr : HashBuilti
     let (user_token_balance_difference) = uint256_sub(user_token_balance_before, user_token_balance_after)
     let (recipient_a_token_balance_difference) = uint256_sub(recipient_a_token_balance_after, recipient_a_token_balance_before)
 
-    let (contract_token_balance_correct) = uint256_eq(contract_token_balance_difference, Uint256(AMOUNT, 0))
-    let (user_token_balance_corrrect) = uint256_eq(user_token_balance_difference, Uint256(AMOUNT, 0))
-    let (recipient_a_token_balance_correct) = uint256_eq(recipient_a_token_balance_difference, Uint256(AMOUNT, 0))
+    let (contract_token_balance_correct) = uint256_eq(contract_token_balance_difference, Uint256(SUPPLY_AMOUNT_LOW, SUPPLY_AMOUNT_HIGH))
+    let (user_token_balance_corrrect) = uint256_eq(user_token_balance_difference, Uint256(SUPPLY_AMOUNT_LOW, SUPPLY_AMOUNT_HIGH))
+    let (recipient_a_token_balance_correct) = uint256_eq(recipient_a_token_balance_difference, Uint256(SUPPLY_AMOUNT_LOW, SUPPLY_AMOUNT_HIGH))
     
     assert contract_token_balance_correct = 1
     assert user_token_balance_corrrect = 1
