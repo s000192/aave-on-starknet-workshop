@@ -1,10 +1,12 @@
-# Aave on Starknet workshop
+# Learn Cairo by building Aave
 
-## Links
+## Scope
+### Implementation of features in `Pool` Contract:
+- Add a new reserve
+- Drop a reserve
+- Supply tokens 
+- Withdraw tokens
 
-[Slides](https://docs.google.com/presentation/d/1hKeOzHAOMshdylkR3oyOrkdIMt7Fhwdu2EF-cNpDhPg/edit?usp=sharing)
-
-[Telegram group](https://t.me/+vh0d0HLc4YthMzBk)
 
 ## Development
 
@@ -12,3 +14,7 @@
 2. To install the dependencies, you should run `protostar install`.
 3. To build the contracts, you should run `protostar build`.
 4. To run the tests, you should run `protostar test`.
+
+## Reference
+- Aave v3: https://github.com/aave/aave-v3-core
+- Base repo of the workshop: https://github.com/achab/aave-on-starknet-workshop
